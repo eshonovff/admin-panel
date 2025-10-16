@@ -1,0 +1,102 @@
+{
+  "users": [
+    {
+      "name": "QRBONBEK",
+      "email": "diana@mail.com",
+      "role": "admin",
+      "id": "4"
+    },
+    {
+      "id": "5",
+      "name": "Eve",
+      "email": "eve@mail.com",
+      "role": "user"
+    },
+    {
+      "name": "Faridun",
+      "email": "frank@mail.com",
+      "role": "admin",
+      "id": "6"
+    },
+    {
+      "id": "7",
+      "name": "Grace",
+      "email": "grace@mail.com",
+      "role": "user"
+    },
+    {
+      "id": "9",
+      "name": "Ivy",
+      "email": "ivy@mail.com",
+      "role": "manager"
+    }
+  ],
+  "products": [
+    {
+      "id": "2",
+      "name": "Laptop",
+      "price": 1999,
+      "inStock": true
+    },
+    {
+      "name": "Tablet",
+      "price": 600,
+      "inStock": true,
+      "id": "3"
+    },
+    {
+      "name": "Monitor",
+      "price": 299,
+      "inStock": false,
+      "id": "4"
+    },
+    {
+      "name": "Keyboard",
+      "price": 49,
+      "inStock": false,
+      "id": "5"
+    },
+    {
+      "id": "6",
+      "name": "Mouse",
+      "price": 39,
+      "inStock": false
+    },
+    {
+      "id": "8",
+      "name": "Headphones",
+      "price": 149,
+      "inStock": false
+    },
+    {
+      "id": "9",
+      "name": "Webcam",
+      "price": 89,
+      "inStock": true
+    },
+    {
+      "id": "10",
+      "name": "Charger",
+      "price": 29,
+      "inStock": true
+    },
+    {
+      "id": "bcea",
+      "name": "Faridun",
+      "price": 333,
+      "inStock": true
+    },
+    {
+      "id": "5abd",
+      "name": "ef",
+      "price": 43,
+      "inStock": true
+    },
+    {
+      "id": "e394",
+      "name": "Синфхонаи 1",
+      "price": 3232,
+      "inStock": true
+    }
+  ]
+}

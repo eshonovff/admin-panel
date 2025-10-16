@@ -1,40 +1,33 @@
-import {useCallback, useState} from "react"
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
-
+import { useCallback, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-    Table,
-    TableHead,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableRow,
-    Paper,
+    Box,
+    Button,
+    Stack,
     TextField,
-    Switch,
-    Typography, Button
-} from "@mui/material"
-import {deleteProduct, fetchProducts} from "../../api/productsApi.ts";
+    Typography,
+    Paper,
+} from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 import Swal from "sweetalert2";
-import CreateProductModal from "../../components/pagesModal/productModal/createProductModal.tsx";
-import UpdateProductModal from "../../components/pagesModal/productModal/updateProductModal.tsx";
+import { fetchProducts, deleteProduct } from "../../api/productsApi";
+import CreateProductModal from "../../components/pagesModal/productModal/createProductModal";
+import UpdateProductModal from "../../components/pagesModal/productModal/updateProductModal";
+import {getProductColumns} from "../../components/ui/tables/getProductColumns.tsx";
 
 const Products = () => {
     const queryClient = useQueryClient();
-    const [searchTerm, setSearchTerm] = useState("")
     const [open, setOpen] = useState(false);
     const [updateOpen, setUpdateOpen] = useState(false);
     const [productId, setProductId] = useState<number | null>(null);
+    const [searchTerm, setSearchTerm] = useState("");
 
-    const {data: products = [], isLoading, isError} = useQuery({
-        queryKey: ['products'],
-        queryFn: fetchProducts
-    })
+    const { data: products = [], isLoading, isError } = useQuery({
+        queryKey: ["products"],
+        queryFn: fetchProducts,
+    });
 
-    const filteredProducts = products.filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    const {mutate} = useMutation({
-        mutationKey: ["deleteProduct"],
+    const { mutate } = useMutation({
         mutationFn: (id: number) => deleteProduct(id),
         onSuccess: () => {
             Swal.fire({
@@ -43,18 +36,9 @@ const Products = () => {
                 timer: 1500,
                 showConfirmButton: false,
             });
-
-            queryClient.invalidateQueries({queryKey: ["products"]});
+            queryClient.invalidateQueries({ queryKey: ["products"] });
         },
-        onError: () => {
-            Swal.fire({
-                icon: "error",
-                title: "Error!",
-                text: "Product could not be deleted.",
-            });
-        },
-
-    })
+    });
 
     const handleDeleteProduct = useCallback(
         (id: number) => {
@@ -63,82 +47,72 @@ const Products = () => {
                 text: "This product will be deleted!",
                 icon: "warning",
                 showCancelButton: true,
-                confirmButtonColor: "#2563eb",
-                cancelButtonColor: "#d33",
                 confirmButtonText: "Yes, delete it!",
                 cancelButtonText: "Cancel",
-                reverseButtons: true,
             }).then((result) => {
-                if (result.isConfirmed) {
-                    mutate(id);
-                }
+                if (result.isConfirmed) mutate(id);
             });
         },
         [mutate]
-    )
+    );
 
-    if (isLoading) return <div>Загрузка...</div>
-    if (isError) return <div>Ошибка загрузки продуктов</div>
+    const handleEditProduct = useCallback((id: number) => {
+        setProductId(id);
+        setUpdateOpen(true);
+    }, []);
+
+    const filteredProducts = useMemo(
+        () =>
+            products.filter((p) =>
+                p.name.toLowerCase().includes(searchTerm.toLowerCase())
+            ),
+        [products, searchTerm]
+    );
+
+    const columns = getProductColumns({
+        onEdit: handleEditProduct,
+        onDelete: handleDeleteProduct,
+    });
+
+    if (isLoading) return <Typography>Загрузка...</Typography>;
+    if (isError) return <Typography color="error">Ошибка загрузки продуктов</Typography>;
 
     return (
-        <div className='space-y-5'>
-            <Typography variant="h5" gutterBottom>Products list</Typography>
-            <div className='flex justify-between items-center'>
+        <Box sx={{ p: 2 }}>
+            <Typography variant="h5" gutterBottom>
+                Products list
+            </Typography>
+
+            <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
                 <TextField
-                    id="standard-search"
                     label="Search"
-                    type="search"
-                    variant="standard"
+                    variant="outlined"
+                    size="small"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Button variant="outlined" onClick={() => setOpen(true)}>
+                <Button variant="contained" onClick={() => setOpen(true)}>
                     Add Product
                 </Button>
+            </Stack>
 
-            </div>
+            <Paper sx={{ height: 500 }}>
+                <DataGrid
+                    rows={filteredProducts}
+                    columns={columns}
+                    pageSizeOptions={[5, 10, 20]}
+                    initialState={{
+                        pagination: { paginationModel: { pageSize: 5 } },
+                    }}
+                    disableRowSelectionOnClick
+                    loading={isLoading}
+                />
+            </Paper>
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>#</TableCell>
-                            <TableCell>Название</TableCell>
-                            <TableCell>Цена</TableCell>
-                            <TableCell>В наличии</TableCell>
-                            <TableCell>Действия</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredProducts.map((product, idx) => (
-                            <TableRow key={product.id}>
-                                <TableCell>{idx + 1}</TableCell>
-                                <TableCell>{product.name}</TableCell>
-                                <TableCell>{product.price} сомонӣ</TableCell>
-                                <TableCell>
-                                    <Switch checked={product.inStock} disabled/>
-                                </TableCell>
-                                <TableCell>
-                                    <Button variant="outlined" color="primary"
-                                            onClick={() => {
-                                                setProductId(product.id)
-                                                    setUpdateOpen(true)
-                                            }}
-                                            size="small"
-                                            style={{marginRight: 8}}>Edit</Button>
-                                    <Button onClick={() => handleDeleteProduct(product.id)} variant="outlined"
-                                            color="error"
-                                            size="small">Delete</Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-            <UpdateProductModal id={productId} open={updateOpen} onClose={() => setUpdateOpen(false)}/>
-            <CreateProductModal open={open} onClose={() => setOpen(false)}/>
-        </div>
-    )
-}
+            <UpdateProductModal id={productId} open={updateOpen} onClose={() => setUpdateOpen(false)} />
+            <CreateProductModal open={open} onClose={() => setOpen(false)} />
+        </Box>
+    );
+};
 
-export default Products
+export default Products;

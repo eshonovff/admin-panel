@@ -1,22 +1,12 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query"
-
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Button,
-    TextField,
-    Typography
-} from "@mui/material"
-import {deleteUser, fetchUsers} from "../../api/usersApi.ts";
-import {useCallback, useState} from "react";
-import CreateUserModal from "../../components/pagesModal/usersModal/createUserModal.tsx";
+import {useState, useCallback, useMemo} from "react";
+import {DataGrid} from "@mui/x-data-grid";
+import {Box, Button, TextField, Typography, Paper} from "@mui/material";
+import {useQuery, useMutation, useQueryClient} from "@tanstack/react-query";
 import Swal from "sweetalert2";
-import UpdateUserModal from "../../components/pagesModal/usersModal/updateUserModal.tsx";
+import {fetchUsers, deleteUser} from "../../api/usersApi";
+import CreateUserModal from "../../components/pagesModal/usersModal/createUserModal";
+import UpdateUserModal from "../../components/pagesModal/usersModal/updateUserModal";
+import {getUserColumns} from "../../components/ui/tables/getUserColumns.tsx";
 
 const Users = () => {
     const queryClient = useQueryClient();
@@ -26,13 +16,11 @@ const Users = () => {
     const [searchTerm, setSearchTerm] = useState("");
 
     const {data: users = [], isLoading, isError} = useQuery({
-        queryKey: ['users'],
-        queryFn: fetchUsers
-    })
-
+        queryKey: ["users"],
+        queryFn: fetchUsers,
+    });
 
     const {mutate} = useMutation({
-        mutationKey: ["deleteUser"],
         mutationFn: (id: number) => deleteUser(id),
         onSuccess: () => {
             Swal.fire({
@@ -41,15 +29,7 @@ const Users = () => {
                 timer: 1500,
                 showConfirmButton: false,
             });
-
             queryClient.invalidateQueries({queryKey: ["users"]});
-        },
-        onError: () => {
-            Swal.fire({
-                icon: "error",
-                title: "Error!",
-                text: "User could not be deleted.",
-            });
         },
     });
 
@@ -60,83 +40,71 @@ const Users = () => {
                 text: "This user will be deleted!",
                 icon: "warning",
                 showCancelButton: true,
-                confirmButtonColor: "#2563eb",
-                cancelButtonColor: "#d33",
                 confirmButtonText: "Yes, delete it!",
-                cancelButtonText: "Cancel",
-                reverseButtons: true,
             }).then((result) => {
-                if (result.isConfirmed) {
-                    mutate(id);
-                }
+                if (result.isConfirmed) mutate(id);
             });
         },
         [mutate]
     );
 
-    const filteredUsers = users.filter((user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    const handleEditUser = useCallback((id: number) => {
+        setUserId(id);
+        setUpdateOpen(true);
+    }, []);
+
+    const filteredUsers = useMemo(
+        () =>
+            users.filter(
+                (u) =>
+                    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    u.role.toLowerCase().includes(searchTerm.toLowerCase())
+            ),
+        [users, searchTerm]
     );
-    if (isLoading) return <div>Загрузка...</div>
-    if (isError) return <div>Ошибка при загрузке пользователей</div>
+
+    const columns = getUserColumns({
+        onEdit: handleEditUser,
+        onDelete: handleDeleteUser,
+    });
+
+    if (isLoading) return <Typography>Загрузка...</Typography>;
+    if (isError) return <Typography color="error">Ошибка загрузки пользователей</Typography>;
 
     return (
-        <div className='space-y-5'>
-            <Typography variant="h5" gutterBottom>Users list</Typography>
-            <div className='flex justify-between items-center'>
+        <Box sx={{p: 2}}>
+            <Typography variant="h5" gutterBottom>
+                Users List
+            </Typography>
+
+            <Box sx={{display: "flex", justifyContent: "space-between", mb: 2}}>
                 <TextField
-                    id="standard-search"
                     label="Search"
-                    type="search"
-                    variant="standard"
+                    size="small"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Button variant="outlined" onClick={() => setOpen(true)}>
+                <Button variant="contained" onClick={() => setOpen(true)}>
                     Add User
                 </Button>
+            </Box>
 
-            </div>
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Имя</TableCell>
-                            <TableCell>Email</TableCell>
-                            <TableCell>Роль</TableCell>
-                            <TableCell>Действия</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredUsers.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell>{user.name}</TableCell>
-                                <TableCell>{user.email}</TableCell>
-                                <TableCell>{user.role}</TableCell>
-                                <TableCell>
-                                    <Button onClick={() => {
-                                        setUserId(user.id);
-                                        setUpdateOpen(true)
-                                    }} variant="outlined" color="primary"
-                                            size="small"
-                                            style={{marginRight: 8}}>Edit</Button>
-                                    <Button onClick={() => handleDeleteUser(user.id)} variant="outlined" color="error"
-                                            size="small">Delete</Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-
-                </Table>
-            </TableContainer>
+            <Paper sx={{height: 500}}>
+                <DataGrid
+                    rows={filteredUsers}
+                    columns={columns}
+                    pageSizeOptions={[5, 10, 20]}
+                    initialState={{pagination: {paginationModel: {pageSize: 5}}}}
+                    disableRowSelectionOnClick
+                    loading={isLoading}
+                />
+            </Paper>
 
             <UpdateUserModal id={userId} open={updateOpen} onClose={() => setUpdateOpen(false)}/>
             <CreateUserModal open={open} onClose={() => setOpen(false)}/>
+        </Box>
+    );
+};
 
-        </div>
-    )
-}
-
-export default Users
+export default Users;
